@@ -18,6 +18,7 @@ export const register = async (req, res) => {
     } = req.body;
 
     // VALIDACIONES
+
     if (
       !first_name ||
       !last_name ||
@@ -26,29 +27,38 @@ export const register = async (req, res) => {
       !email ||
       !password
     ) {
+
       return res.status(400).json({
         success: false,
-        message: 'Todos los campos obligatorios deben ser completados'
+        message: 'Todos los campos obligatorios deben ser enviados'
       });
+
     }
 
     // VALIDAR EDAD
+
     if (age < 25) {
+
       return res.status(400).json({
         success: false,
         message: 'La edad mínima permitida es 25 años'
       });
+
     }
 
     // VALIDAR SUELDO
+
     if (salary < 0) {
+
       return res.status(400).json({
         success: false,
         message: 'El sueldo no puede ser negativo'
       });
+
     }
 
     // REGISTRO SUPABASE
+
     const { data, error } = await supabase.auth.signUp({
 
       email,
@@ -62,8 +72,8 @@ export const register = async (req, res) => {
           last_name,
           age,
           salary,
-          children_count: children_count || 0,
-          pets_count: pets_count || 0
+          children_count,
+          pets_count
 
         }
 
@@ -72,6 +82,7 @@ export const register = async (req, res) => {
     });
 
     // ERROR
+
     if (error) {
 
       return res.status(400).json({
@@ -82,10 +93,11 @@ export const register = async (req, res) => {
     }
 
     // RESPUESTA
+
     return res.status(201).json({
 
       success: true,
-      message: 'Usuario registrado correctamente',
+      message: 'Usuario registrado correctamente. Verifique su correo.',
       data
 
     });
@@ -93,14 +105,15 @@ export const register = async (req, res) => {
   } catch (error) {
 
     return res.status(500).json({
+
       success: false,
       message: error.message
+
     });
 
   }
 
 };
-
 
 // LOGIN
 
@@ -111,6 +124,7 @@ export const login = async (req, res) => {
     const { email, password } = req.body;
 
     // VALIDACIONES
+
     if (!email || !password) {
 
       return res.status(400).json({
@@ -121,6 +135,7 @@ export const login = async (req, res) => {
     }
 
     // LOGIN
+
     const { data, error } = await supabase.auth.signInWithPassword({
 
       email,
@@ -129,6 +144,7 @@ export const login = async (req, res) => {
     });
 
     // ERROR
+
     if (error) {
 
       return res.status(401).json({
@@ -139,6 +155,7 @@ export const login = async (req, res) => {
     }
 
     // RESPUESTA
+
     return res.status(200).json({
 
       success: true,
@@ -150,14 +167,15 @@ export const login = async (req, res) => {
   } catch (error) {
 
     return res.status(500).json({
+
       success: false,
       message: error.message
+
     });
 
   }
 
 };
-
 
 // LOGIN GOOGLE
 
@@ -170,12 +188,15 @@ export const loginWithGoogle = async (req, res) => {
       provider: 'google',
 
       options: {
+
         redirectTo: 'http://localhost:5173/dashboard'
+
       }
 
     });
 
     // ERROR
+
     if (error) {
 
       return res.status(400).json({
@@ -186,6 +207,7 @@ export const loginWithGoogle = async (req, res) => {
     }
 
     // RESPUESTA
+
     return res.status(200).json({
 
       success: true,
@@ -196,8 +218,10 @@ export const loginWithGoogle = async (req, res) => {
   } catch (error) {
 
     return res.status(500).json({
+
       success: false,
       message: error.message
+
     });
 
   }
@@ -220,14 +244,15 @@ export const getProfile = async (req, res) => {
   } catch (error) {
 
     return res.status(500).json({
+
       success: false,
       message: error.message
+
     });
 
   }
 
 };
-
 
 // ACTUALIZAR PERFIL
 
@@ -245,6 +270,7 @@ export const updateProfile = async (req, res) => {
     } = req.body;
 
     // VALIDAR EDAD
+
     if (age && age < 25) {
 
       return res.status(400).json({
@@ -255,6 +281,7 @@ export const updateProfile = async (req, res) => {
     }
 
     // VALIDAR SUELDO
+
     if (salary && salary < 0) {
 
       return res.status(400).json({
@@ -264,7 +291,8 @@ export const updateProfile = async (req, res) => {
 
     }
 
-    // UPDATE
+    // ACTUALIZAR AUTH.USERS
+
     const { data, error } = await supabase.auth.updateUser({
 
       data: {
@@ -280,7 +308,8 @@ export const updateProfile = async (req, res) => {
 
     });
 
-    // ERROR
+    // ERROR AUTH
+
     if (error) {
 
       return res.status(400).json({
@@ -290,7 +319,35 @@ export const updateProfile = async (req, res) => {
 
     }
 
+    // ACTUALIZAR TABLA PROFILES
+
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({
+
+        first_name,
+        last_name,
+        age,
+        salary,
+        children_count,
+        pets_count
+
+      })
+      .eq('id', req.user.id);
+
+    // ERROR PROFILE
+
+    if (profileError) {
+
+      return res.status(400).json({
+        success: false,
+        message: profileError.message
+      });
+
+    }
+
     // RESPUESTA
+
     return res.status(200).json({
 
       success: true,
@@ -302,18 +359,17 @@ export const updateProfile = async (req, res) => {
   } catch (error) {
 
     return res.status(500).json({
+
       success: false,
       message: error.message
+
     });
 
   }
 
 };
 
-
-
 // RECUPERAR CONTRASEÑA
-
 
 export const forgotPassword = async (req, res) => {
 
@@ -321,7 +377,8 @@ export const forgotPassword = async (req, res) => {
 
     const { email } = req.body;
 
-    // VALIDACIÓN
+    // VALIDAR EMAIL
+
     if (!email) {
 
       return res.status(400).json({
@@ -331,7 +388,8 @@ export const forgotPassword = async (req, res) => {
 
     }
 
-    // RECOVERY
+    // ENVIAR EMAIL
+
     const { error } = await supabase.auth.resetPasswordForEmail(
 
       email,
@@ -343,6 +401,7 @@ export const forgotPassword = async (req, res) => {
     );
 
     // ERROR
+
     if (error) {
 
       return res.status(400).json({
@@ -353,6 +412,7 @@ export const forgotPassword = async (req, res) => {
     }
 
     // RESPUESTA
+
     return res.status(200).json({
 
       success: true,
@@ -363,8 +423,10 @@ export const forgotPassword = async (req, res) => {
   } catch (error) {
 
     return res.status(500).json({
+
       success: false,
       message: error.message
+
     });
 
   }
@@ -379,7 +441,8 @@ export const updatePassword = async (req, res) => {
 
     const { password } = req.body;
 
-    // VALIDACIÓN
+    // VALIDAR PASSWORD
+
     if (!password) {
 
       return res.status(400).json({
@@ -389,7 +452,8 @@ export const updatePassword = async (req, res) => {
 
     }
 
-    // UPDATE PASSWORD
+    // ACTUALIZAR PASSWORD
+
     const { data, error } = await supabase.auth.updateUser({
 
       password
@@ -397,6 +461,7 @@ export const updatePassword = async (req, res) => {
     });
 
     // ERROR
+
     if (error) {
 
       return res.status(400).json({
@@ -407,6 +472,7 @@ export const updatePassword = async (req, res) => {
     }
 
     // RESPUESTA
+
     return res.status(200).json({
 
       success: true,
@@ -418,8 +484,10 @@ export const updatePassword = async (req, res) => {
   } catch (error) {
 
     return res.status(500).json({
+
       success: false,
       message: error.message
+
     });
 
   }
